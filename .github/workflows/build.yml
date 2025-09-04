@@ -29,31 +29,31 @@ jobs:
             PKG_ARCH: x86_64
             RUNNER: ubuntu-24.04
             OPT: --with=modsecurity --with=pagespeed
-          # - VERSION: 8
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: x86_64
-          #   RUNNER: ubuntu-24.04
-          #   OPT: --with=modsecurity --with=pagespeed
-          # - VERSION: 9
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: x86_64
-          #   RUNNER: ubuntu-24.04
-          #   OPT: --with=modsecurity
+          - VERSION: 8
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-24.04
+            OPT: --with=modsecurity --with=pagespeed
+          - VERSION: 9
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-24.04
+            OPT: --with=modsecurity
           - VERSION: 9
             OS: rockylinux/rockylinux
             PKG_ARCH: aarch64
             RUNNER: ubuntu-24.04-arm
             OPT: --with=modsecurity
-          # - VERSION: 10
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: x86_64
-          #   RUNNER: ubuntu-latest
-          #   OPT: --with=modsecurity
-          # - VERSION: 10
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: aarch64
-          #   RUNNER: ubuntu-latest-arm64
-          #   OPT: --with=modsecurity
+          - VERSION: 10
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-latest
+            OPT: --with=modsecurity
+          - VERSION: 10
+            OS: rockylinux/rockylinux
+            PKG_ARCH: aarch64
+            RUNNER: ubuntu-latest-arm64
+            OPT: --with=modsecurity
 
     steps:
       - uses: actions/checkout@v4
@@ -79,21 +79,21 @@ jobs:
               PKG_VERSION=$(awk "/^Version:/{print \$2}" SPECS/${PKG_NAME}.spec)
               PKG_RELEASE=$(awk "/^Release:/{print \$2}" SPECS/${PKG_NAME}.spec | tr -d "%{?dist}")
 
-              # usermod -a -G mock root || true
-              # mkdir -p /var/lib/mock /var/cache/mock
-              # chown -R root:mock /var/lib/mock /var/cache/mock
-              # chmod -R 0775 /var/lib/mock /var/cache/mock
+              usermod -a -G mock root || true
+              mkdir -p /var/lib/mock /var/cache/mock
+              chown -R root:mock /var/lib/mock /var/cache/mock
+              chmod -R 0775 /var/lib/mock /var/cache/mock
 
               spectool -g SPECS/${PKG_NAME}.spec -C SOURCES/
 
-              mock --isolation=simple --bootstrap-chroot \
+              mock --isolation=simple \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --spec=SPECS/${PKG_NAME}.spec \
                    --sources=SOURCES \
                    --resultdir=SRPMS \
                    --buildsrpm ${{ matrix.OPT }}
 
-              mock --isolation=simple --bootstrap-chroot --clean \
+              mock --isolation=simple --clean \
                    -D "dist .el${{ matrix.VERSION }}" \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --resultdir=RPMS \

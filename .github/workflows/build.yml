@@ -29,21 +29,21 @@ jobs:
             PKG_ARCH: x86_64
             RUNNER: ubuntu-latest
             OPT: --with=modsecurity --with=pagespeed
-          - VERSION: 8
-            OS: rockylinux/rockylinux
-            PKG_ARCH: x86_64
-            RUNNER: ubuntu-latest
-            OPT: --with=modsecurity --with=pagespeed
-          - VERSION: 9
-            OS: rockylinux/rockylinux
-            PKG_ARCH: x86_64
-            RUNNER: ubuntu-latest
-            OPT: --with=modsecurity
-          - VERSION: 9
-            OS: rockylinux/rockylinux
-            PKG_ARCH: aarch64
-            RUNNER: ubuntu-latest-arm64
-            OPT: --with=modsecurity
+          # - VERSION: 8
+          #   OS: rockylinux/rockylinux
+          #   PKG_ARCH: x86_64
+          #   RUNNER: ubuntu-latest
+          #   OPT: --with=modsecurity --with=pagespeed
+          # - VERSION: 9
+          #   OS: rockylinux/rockylinux
+          #   PKG_ARCH: x86_64
+          #   RUNNER: ubuntu-latest
+          #   OPT: --with=modsecurity
+          # - VERSION: 9
+          #   OS: rockylinux/rockylinux
+          #   PKG_ARCH: aarch64
+          #   RUNNER: ubuntu-latest-arm64
+          #   OPT: --with=modsecurity
           # - VERSION: 10
           #   OS: rockylinux/rockylinux
           #   PKG_ARCH: x86_64
@@ -86,14 +86,14 @@ jobs:
 
               spectool -g SPECS/${PKG_NAME}.spec -C SOURCES/
 
-              mock --isolation=simple --no-bootstrap-chroot \
+              mock --isolation=simple --bootstrap-chroot \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --spec=SPECS/${PKG_NAME}.spec \
                    --sources=SOURCES \
                    --resultdir=SRPMS \
                    --buildsrpm ${{ matrix.OPT }}
 
-              mock --isolation=simple --no-bootstrap-chroot --clean \
+              mock --isolation=simple --bootstrap-chroot --clean \
                    -D "dist .el${{ matrix.VERSION }}" \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --resultdir=RPMS \

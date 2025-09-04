@@ -9,7 +9,7 @@ on:
 
 jobs:
   buildrpm:
-    name: Build el${{ matrix.VERSION }} package
+    name: Build el${{ matrix.VERSION }} ${{ matrix.PKG_ARCH }} rpm
     runs-on: ${{ matrix.RUNNER }}
     timeout-minutes: 60
     env:
@@ -20,6 +20,7 @@ jobs:
         --cap-add=SYS_ADMIN
         --security-opt seccomp=unconfined
         --security-opt apparmor=unconfined
+        --cgroupns=host
     strategy:
       fail-fast: false
       matrix:

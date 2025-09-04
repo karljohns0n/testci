@@ -11,10 +11,9 @@ jobs:
   buildrpm:
     name: Build el${{ matrix.VERSION }} ${{ matrix.PKG_ARCH }} rpm
     runs-on: ${{ matrix.RUNNER }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       PKG_NAME: nginx-more
-      DOCKER_DEFAULT_PLATFORM: ${{ matrix.PKG_ARCH == 'x86_64' && 'linux/amd64' || 'linux/arm64' }}
       DOCKER_OPTS: >-
         --rm --privileged --user 0:0
         --cap-add=SYS_ADMIN
@@ -136,7 +135,9 @@ jobs:
           name: ${{ env.PKG_NAME }}-el${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }}
           path: |
             ${{ github.workspace }}/RPMS/*.rpm
+            ${{ github.workspace }}/RPMS/*.log
             !${{ github.workspace }}/RPMS/*debug*.rpm
             !${{ github.workspace }}/RPMS/*.src.rpm
           if-no-files-found: error
           retention-days: 30
+          compression-level: 9

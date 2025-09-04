@@ -47,12 +47,12 @@ jobs:
           - VERSION: 10
             OS: rockylinux/rockylinux
             PKG_ARCH: x86_64
-            RUNNER: ubuntu-latest
+            RUNNER: ubuntu-24.04
             OPT: --with=modsecurity
           - VERSION: 10
             OS: rockylinux/rockylinux
             PKG_ARCH: aarch64
-            RUNNER: ubuntu-latest-arm64
+            RUNNER: ubuntu-24.04-arm
             OPT: --with=modsecurity
 
     steps:

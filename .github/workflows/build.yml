@@ -27,22 +27,22 @@ jobs:
           - VERSION: 7
             OS: karljohns0n/centos
             PKG_ARCH: x86_64
-            RUNNER: ubuntu-latest
+            RUNNER: ubuntu-24.04
             OPT: --with=modsecurity --with=pagespeed
-          # - VERSION: 8
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: x86_64
-          #   RUNNER: ubuntu-latest
-          #   OPT: --with=modsecurity --with=pagespeed
-          # - VERSION: 9
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: x86_64
-          #   RUNNER: ubuntu-latest
-          #   OPT: --with=modsecurity
-          # - VERSION: 9
-          #   OS: rockylinux/rockylinux
-          #   PKG_ARCH: aarch64
-          #   RUNNER: ubuntu-latest-arm64
+          - VERSION: 8
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-24.04
+            OPT: --with=modsecurity --with=pagespeed
+          - VERSION: 9
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-24.04
+            OPT: --with=modsecurity
+          - VERSION: 9
+            OS: rockylinux/rockylinux
+            PKG_ARCH: aarch64
+            RUNNER: ubuntu-24.04-arm
           #   OPT: --with=modsecurity
           # - VERSION: 10
           #   OS: rockylinux/rockylinux
@@ -136,5 +136,6 @@ jobs:
           path: |
             ${{ github.workspace }}/RPMS/*.rpm
             !${{ github.workspace }}/RPMS/*debug*.rpm
+            !${{ github.workspace }}/RPMS/*.src.rpm
           if-no-files-found: error
           retention-days: 30

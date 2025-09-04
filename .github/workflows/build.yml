@@ -79,16 +79,21 @@ jobs:
               PKG_VERSION=$(awk "/^Version:/{print \$2}" SPECS/${PKG_NAME}.spec)
               PKG_RELEASE=$(awk "/^Release:/{print \$2}" SPECS/${PKG_NAME}.spec | tr -d "%{?dist}")
 
+              usermod -a -G mock root || true
+              mkdir -p /var/lib/mock /var/cache/mock
+              chown -R root:mock /var/lib/mock /var/cache/mock
+              chmod -R 0775 /var/lib/mock /var/cache/mock
+
               spectool -g SPECS/${PKG_NAME}.spec -C SOURCES/
 
-              mock --isolation=simple \
+              mock --isolation=simple --no-bootstrap-chroot \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --spec=SPECS/${PKG_NAME}.spec \
                    --sources=SOURCES \
                    --resultdir=SRPMS \
                    --buildsrpm ${{ matrix.OPT }}
 
-              mock --isolation=simple --clean \
+              mock --isolation=simple --no-bootstrap-chroot --clean \
                    -D "dist .el${{ matrix.VERSION }}" \
                    -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
                    --resultdir=RPMS \

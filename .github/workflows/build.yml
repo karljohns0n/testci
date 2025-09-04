@@ -1,0 +1,135 @@
+name: nginx-more
+
+on: 
+  push:
+    branches: 
+      - master
+    tags:
+      - '*'
+
+jobs:
+  buildrpm:
+    name: Build el${{ matrix.VERSION }} package
+    runs-on: ${{ matrix.RUNNER }}
+    timeout-minutes: 60
+    env:
+      PKG_NAME: nginx-more
+      DOCKER_DEFAULT_PLATFORM: ${{ matrix.PKG_ARCH == 'x86_64' && 'linux/amd64' || 'linux/arm64' }}
+      DOCKER_OPTS: >-
+        --rm --privileged --user 0:0
+        --cap-add=SYS_ADMIN
+        --security-opt seccomp=unconfined
+        --security-opt apparmor=unconfined
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - VERSION: 7
+            OS: karljohns0n/centos
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-latest
+            OPT: --with=modsecurity --with=pagespeed
+          - VERSION: 8
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-latest
+            OPT: --with=modsecurity --with=pagespeed
+          - VERSION: 9
+            OS: rockylinux/rockylinux
+            PKG_ARCH: x86_64
+            RUNNER: ubuntu-latest
+            OPT: --with=modsecurity
+          - VERSION: 9
+            OS: rockylinux/rockylinux
+            PKG_ARCH: aarch64
+            RUNNER: ubuntu-latest-arm64
+            OPT: --with=modsecurity
+          # - VERSION: 10
+          #   OS: rockylinux/rockylinux
+          #   PKG_ARCH: x86_64
+          #   RUNNER: ubuntu-latest
+          #   OPT: --with=modsecurity
+          # - VERSION: 10
+          #   OS: rockylinux/rockylinux
+          #   PKG_ARCH: aarch64
+          #   RUNNER: ubuntu-latest-arm64
+          #   OPT: --with=modsecurity
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sanity — show host arch and Docker info
+        run: |
+          uname -m
+          docker info --format '{{.ServerVersion}} {{.OperatingSystem}} (default platform {{.OSType}}/{{.Architecture}})'
+
+      - name: Build el${{ matrix.VERSION }} rpm with mock
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run ${DOCKER_OPTS} \
+            -e PKG_NAME="${PKG_NAME}" \
+            -v "${GITHUB_WORKSPACE}:/tmp/${PKG_NAME}" \
+            karljohns0n/rpmbuild:9 \
+            bash -lc '
+              set -euo pipefail
+
+              cd /tmp/${PKG_NAME}
+
+              PKG_VERSION=$(awk "/^Version:/{print \$2}" SPECS/${PKG_NAME}.spec)
+              PKG_RELEASE=$(awk "/^Release:/{print \$2}" SPECS/${PKG_NAME}.spec | tr -d "%{?dist}")
+
+              spectool -g SPECS/${PKG_NAME}.spec -C SOURCES/
+
+              mock --isolation=simple \
+                   -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
+                   --spec=SPECS/${PKG_NAME}.spec \
+                   --sources=SOURCES \
+                   --resultdir=SRPMS \
+                   --buildsrpm ${{ matrix.OPT }}
+
+              mock --isolation=simple --clean \
+                   -D "dist .el${{ matrix.VERSION }}" \
+                   -r aeris-${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }} \
+                   --resultdir=RPMS \
+                   --rebuild SRPMS/${PKG_NAME}-${PKG_VERSION}-${PKG_RELEASE}.el${{ matrix.VERSION }}.src.rpm ${{ matrix.OPT }}
+
+              rpm -qlp RPMS/${PKG_NAME}-${PKG_VERSION}-${PKG_RELEASE}.el${{ matrix.VERSION }}.${{ matrix.PKG_ARCH }}.rpm --noartifact
+            '
+
+      - name: Test package on el${{ matrix.VERSION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run ${DOCKER_OPTS} \
+            -e PKG_NAME="${PKG_NAME}" \
+            -v "${GITHUB_WORKSPACE}:/tmp/${PKG_NAME}" \
+            ${{ matrix.OS }}:${{ matrix.VERSION }} \
+            bash -lc '
+              set -euo pipefail
+
+              cd /tmp/${PKG_NAME}
+              PKG_VERSION=$(awk "/^Version:/{print \$2}" SPECS/${PKG_NAME}.spec)
+              PKG_RELEASE=$(awk "/^Release:/{print \$2}" SPECS/${PKG_NAME}.spec | tr -d "%{?dist}")
+
+              yum clean all || true
+              bash -lc "[[ ! -f /etc/yum.repos.d/aeris.repo ]] && yum -y install https://repo.aerisnetwork.com/pub/aeris-release-$(rpm -E %{rhel}).rpm || echo continue"
+              yum install --enablerepo="aeris,aeris-testing" -y "RPMS/${PKG_NAME}-${PKG_VERSION}-${PKG_RELEASE}.el${{ matrix.VERSION }}.${{ matrix.PKG_ARCH }}.rpm"
+
+              nginx -V
+              /usr/sbin/nginx -t
+              /usr/sbin/nginx && sleep 5
+              curl -s -I http://127.0.0.1 | tee /tmp/curl.txt
+              cat /var/log/nginx/error.log || true
+              yum remove -y nginx-more
+            '
+
+      - name: Upload RPMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-el${{ matrix.VERSION }}-${{ matrix.PKG_ARCH }}
+          path: |
+            ${{ github.workspace }}/RPMS/*.rpm
+            !${{ github.workspace }}/RPMS/*debug*.rpm
+          if-no-files-found: error
+          retention-days: 30
